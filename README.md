@@ -21,6 +21,32 @@ A cross-platform key event listener and simulator for Windows and Linux.
   - serde_json
   - enigo
 
+## Runtime dependencies for simulation (enigo)
+
+Linux users may have to install `libxdo-dev` if they are using `X11`. For example, on Debian-based distros:
+
+```Bash
+apt install libxdo-dev
+```
+
+On Arch:
+
+```Bash
+pacman -S xdotool
+```
+
+On Fedora:
+
+```Bash
+dnf install libX11-devel libxdo-devel
+```
+
+On Gentoo:
+
+```Bash
+emerge -a xdotool
+```
+
 ## Building
 
 ```bash
