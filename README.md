@@ -111,9 +111,9 @@ In simulation mode, the program accepts JSON input through standard input.
 
 - `event_type`: Must be "mouse"
 - `action`: One of "move", "click", "press", "release", or "scroll"
-- `x`, `y`: X and Y coordinates for move actions
-- `button`: One of "left", "right", "middle" for click/press/release actions
-- `scroll_x`, `scroll_y`: Horizontal and vertical scroll amounts
+- `x`, `y`: (Optional) X and Y coordinates for move actions
+- `button`: (Optional) One of "left", "right", "middle" for click/press/release actions
+- `scroll_x`, `scroll_y`: (Optional) Horizontal and vertical scroll amounts
 - `delay_after_ms`: (Optional) Milliseconds to wait after the mouse action
 
 ### Supported Keys
@@ -161,8 +161,8 @@ When in mouse handling mode, the program tracks mouse movements and button event
 
 ```json
 {"event_type":"move","x":512,"y":384,"timestamp":1620000000000}
-{"event_type":"button_press","x":512,"y":384,"button":"left","timestamp":1620000000100}
-{"event_type":"button_release","x":512,"y":384,"button":"left","timestamp":1620000000200}
+{"event_type":"button","x":512,"y":384,"button":"left","pressed":true,"timestamp":1620000000100}
+{"event_type":"button","x":512,"y":384,"button":"left","pressed":false,"timestamp":1620000000200}
 ```
 
 ## License
