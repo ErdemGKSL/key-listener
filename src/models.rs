@@ -1,6 +1,6 @@
 use serde::{Serialize, Deserialize};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize)]
 pub struct KeyEvent {
     pub key: String,
     pub event_type: String,
@@ -8,14 +8,14 @@ pub struct KeyEvent {
     pub timestamp: u64,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize)]
 pub struct ComplexKeyEvent {
     pub keys: Vec<String>,
     pub event_type: String,
     pub timestamp: u64,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize)]
 pub struct KeySequenceEvent {
     pub keys: Vec<String>,
     pub start_time: u64,
@@ -51,7 +51,7 @@ pub enum SimulationEvent {
     Mouse(MouseSimulationEvent),
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize)]
 pub struct MouseEvent {
     pub event_type: String, // "move", "click", "scroll", etc.
     pub x: i32,
