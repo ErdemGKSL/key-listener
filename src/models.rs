@@ -17,10 +17,11 @@ pub struct ComplexKeyEvent {
 
 #[derive(Serialize, Deserialize)]
 pub struct KeySequenceEvent {
-    pub keys_pressed: Vec<String>,
+    pub keys: Vec<String>,
     pub start_time: u64,
     pub end_time: u64,
     pub duration_ms: u64,
+    pub event_type: String
 }
 
 #[derive(Deserialize)]
@@ -55,6 +56,9 @@ pub struct MouseEvent {
     pub event_type: String, // "move", "click", "scroll", etc.
     pub x: i32,
     pub y: i32,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub button: Option<String>, // "left", "right", "middle" for click events
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub pressed: Option<bool>, // true for press, false for release
     pub timestamp: u64,
 }

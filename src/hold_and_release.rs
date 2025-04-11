@@ -36,7 +36,8 @@ pub fn hold_and_release_handling() {
             let duration = end_time - sequence_start_time;
             
             let event = KeySequenceEvent {
-                keys_pressed: keys_sequence.clone(),
+                event_type: "key_sequence".to_string(),
+                keys: keys_sequence.clone(),
                 start_time: sequence_start_time,
                 end_time,
                 duration_ms: duration,

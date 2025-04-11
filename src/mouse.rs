@@ -20,6 +20,7 @@ pub fn mouse_handling() {
                 x: position.0,
                 y: position.1,
                 button: None,
+                pressed: None,
                 timestamp: current_time,
             };
             
@@ -40,10 +41,11 @@ pub fn mouse_handling() {
                     };
                     
                     let event = MouseEvent {
-                        event_type: "button_press".to_string(),
+                        event_type: "button".to_string(),
                         x: position.0,
                         y: position.1,
                         button: Some(button_name),
+                        pressed: Some(true),
                         timestamp: current_time,
                     };
                     println!("{}", serde_json::to_string(&event).unwrap());
@@ -56,10 +58,11 @@ pub fn mouse_handling() {
                     };
                     
                     let event = MouseEvent {
-                        event_type: "button_release".to_string(),
+                        event_type: "button".to_string(),
                         x: position.0,
                         y: position.1,
                         button: Some(button_name),
+                        pressed: Some(false),
                         timestamp: current_time,
                     };
                     println!("{}", serde_json::to_string(&event).unwrap());
