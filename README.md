@@ -200,26 +200,26 @@ Used to simulate mouse movements, button clicks/presses/releases, and scrolling.
 
 5.  **`action: "scroll"`**
     *   Simulates scrolling the mouse wheel. Can be instant or animated.
-    *   **Optional Fields:** (At least one of `scroll_x` or `scroll_y` must be provided)
-        *   `scroll_x`: The total amount to scroll horizontally. Positive values scroll right, negative values scroll left.
-        *   `scroll_y`: The total amount to scroll vertically. Positive values scroll up, negative values scroll down. (Note: Vertical scroll direction might feel inverted depending on OS settings).
+    *   **Optional Fields:** (At least one of `delta_x` or `delta_y` must be provided)
+        *   `delta_x`: The total amount to scroll horizontally. Positive values scroll right, negative values scroll left.
+        *   `delta_y`: The total amount to scroll vertically. Positive values scroll up, negative values scroll down. (Note: Vertical scroll direction might feel inverted depending on OS settings).
     *   **Optional Fields for Animation:**
         *   `duration_ms`: Duration in milliseconds for the scroll animation. If 0 or omitted, the scroll is instantaneous.
         *   `ease`: The name of the easing function for the animation (e.g., `"easeOutSine"`). Requires `duration_ms` > 0. See [Supported Easing Functions](#supported-easing-functions-for-mouse-actions). Defaults to `"linear"` if `duration_ms` is provided but `ease` is omitted.
     *   **Examples:**
         *   **Instant Scroll Down 10 units:**
           ```json
-          {"event_type":"mouse","action":"scroll","scroll_y":-10}
+          {"event_type":"mouse","action":"scroll","delta_y":-10}
           ```
           ```bash
-          echo '{"event_type":"mouse","action":"scroll","scroll_y":-10}' | ./key-listener SIMULATION
+          echo '{"event_type":"mouse","action":"scroll","delta_y":-10}' | ./key-listener SIMULATION
           ```
         *   **Animated Scroll Right 50 units over 500ms:**
           ```json
-          {"event_type":"mouse","action":"scroll","scroll_x":50,"duration_ms":500,"ease":"easeOutSine"}
+          {"event_type":"mouse","action":"scroll","delta_x":50,"duration_ms":500,"ease":"easeOutSine"}
           ```
           ```bash
-          echo '{"event_type":"mouse","action":"scroll","scroll_x":50,"duration_ms":500,"ease":"easeOutSine"}' | ./key-listener SIMULATION
+          echo '{"event_type":"mouse","action":"scroll","delta_x":50,"duration_ms":500,"ease":"easeOutSine"}' | ./key-listener SIMULATION
           ```
 
 ### Text Simulation (`event_type: "text"`)
@@ -303,12 +303,12 @@ echo '{"event_type":"mouse","action":"click","button":"left"}' | ./key-listener 
 
 Scroll down 10 units instantly:
 ```bash
-echo '{"event_type":"mouse","action":"scroll","scroll_y":-10}' | ./key-listener SIMULATION
+echo '{"event_type":"mouse","action":"scroll","delta_y":-10}' | ./key-listener SIMULATION
 ```
 
 Scroll up 20 units smoothly over 300ms:
 ```bash
-echo '{"event_type":"mouse","action":"scroll","scroll_y":20,"duration_ms":300,"ease":"linear"}' | ./key-listener SIMULATION
+echo '{"event_type":"mouse","action":"scroll","delta_y":20,"duration_ms":300,"ease":"linear"}' | ./key-listener SIMULATION
 ```
 
 Drag the mouse from (100, 100) to (300, 300):

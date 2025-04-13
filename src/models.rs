@@ -37,8 +37,8 @@ pub struct MouseSimulationEvent {
     pub x: Option<i32>,  // X coordinate for move actions
     pub y: Option<i32>,  // Y coordinate for move actions
     pub button: Option<String>, // "left", "right", "middle"
-    pub scroll_x: Option<i32>, // Horizontal scroll amount
-    pub scroll_y: Option<i32>, // Vertical scroll amount
+    pub delta_x: Option<i32>, // Horizontal scroll amount
+    pub delta_y: Option<i32>, // Vertical scroll amount
     pub delay_after_ms: Option<u64>,
     pub duration_ms: Option<u64>, // Duration for animated movement
     pub ease: Option<String>, // Easing function name ("linear", "easeInQuad", etc.)
@@ -73,8 +73,8 @@ pub struct MouseEvent {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub pressed: Option<bool>, // true for press, false for release
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub scroll_x: Option<i32>, // Horizontal scroll delta
+    pub delta_x: Option<i32>, // Horizontal scroll delta
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub scroll_y: Option<i32>, // Vertical scroll delta
+    pub delta_y: Option<i32>, // Vertical scroll delta
     pub timestamp: u64,
 }

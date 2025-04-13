@@ -22,8 +22,8 @@ fn callback(event: Event) {
             y: Some(y as i32), // Wrap in Some
             button: None,
             pressed: None,
-            scroll_x: None,
-            scroll_y: None,
+            delta_x: None,
+            delta_y: None,
             timestamp: current_time,
         }),
         EventType::ButtonPress(button) => Some(MouseEvent {
@@ -33,8 +33,8 @@ fn callback(event: Event) {
             y: None, // Set to None
             button: Some(button_to_string(button)),
             pressed: Some(true),
-            scroll_x: None,
-            scroll_y: None,
+            delta_x: None,
+            delta_y: None,
             timestamp: current_time,
         }),
         EventType::ButtonRelease(button) => Some(MouseEvent {
@@ -44,8 +44,8 @@ fn callback(event: Event) {
             y: None, // Set to None
             button: Some(button_to_string(button)),
             pressed: Some(false),
-            scroll_x: None,
-            scroll_y: None,
+            delta_x: None,
+            delta_y: None,
             timestamp: current_time,
         }),
         EventType::Wheel { delta_x, delta_y } => Some(MouseEvent {
@@ -55,8 +55,8 @@ fn callback(event: Event) {
             y: None, // Set to None
             button: None,
             pressed: None,
-            scroll_x: Some(delta_x as i32), // Cast i64 to i32
-            scroll_y: Some(delta_y as i32), // Cast i64 to i32
+            delta_x: Some(delta_x as i32), // Cast i64 to i32
+            delta_y: Some(delta_y as i32), // Cast i64 to i32
             timestamp: current_time,
         }),
         // Ignore keyboard events in this handler
