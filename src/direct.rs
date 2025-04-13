@@ -1,40 +1,37 @@
-use std::{thread, time::Duration};
-use device_query::{DeviceQuery, DeviceState, Keycode};
-
+use rdev::{listen, Event, EventType};
 use crate::models::KeyEvent;
+use chrono::Utc;
+
+// Callback function to process key events
+fn callback(event: Event) {
+    let current_time = Utc::now().timestamp_millis() as u64;
+    let key_event = match event.event_type {
+        EventType::KeyPress(key) => Some(KeyEvent {
+            key: format!("{:?}", key), // Use Debug representation of rdev::Key
+            pressed: true,
+            event_type: "direct".to_string(),
+            timestamp: current_time,
+        }),
+        EventType::KeyRelease(key) => Some(KeyEvent {
+            key: format!("{:?}", key), // Use Debug representation of rdev::Key
+            pressed: false,
+            event_type: "direct".to_string(),
+            timestamp: current_time,
+        }),
+        // Ignore mouse events in this handler
+        _ => None,
+    };
+
+    if let Some(ke) = key_event {
+        if let Ok(json) = serde_json::to_string(&ke) {
+            println!("{}", json);
+        }
+    }
+}
 
 pub fn direct_handling() {
-    let device_state = DeviceState::new();
-    let mut previous_keys: Vec<Keycode> = Vec::new();
-    
-    loop {
-        let keys = device_state.get_keys();
-        
-        for key in &keys {
-            if !previous_keys.contains(key) {
-                let event = KeyEvent {
-                    key: format!("{:?}", key),
-                    pressed: true,
-                    event_type: "direct".to_string(),
-                    timestamp: chrono::Utc::now().timestamp_millis() as u64,
-                };
-                println!("{}", serde_json::to_string(&event).unwrap());
-            }
-        }
-        
-        for key in &previous_keys {
-            if !keys.contains(key) {
-                let event = KeyEvent {
-                    key: format!("{:?}", key),
-                    pressed: false,
-                    event_type: "direct".to_string(),
-                    timestamp: chrono::Utc::now().timestamp_millis() as u64,
-                };
-                println!("{}", serde_json::to_string(&event).unwrap());
-            }
-        }
-        
-        previous_keys = keys;
-        thread::sleep(Duration::from_millis(10));
+    // This will block the thread and listen for events.
+    if let Err(error) = listen(callback) {
+        eprintln!("Error listening for keyboard events: {:?}", error);
     }
 }

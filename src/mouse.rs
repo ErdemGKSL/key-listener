@@ -1,77 +1,79 @@
-use std::{thread, time::Duration};
-use device_query::{DeviceState, DeviceQuery};
-
+use rdev::{listen, Event, EventType, Button};
 use crate::models::MouseEvent;
+use chrono::Utc;
+
+// Helper function to map rdev Button to string
+fn button_to_string(button: Button) -> String {
+    match button {
+        Button::Left => "left".to_string(),
+        Button::Right => "right".to_string(),
+        Button::Middle => "middle".to_string(),
+        Button::Unknown(code) => format!("button_{}", code), // Handle unknown buttons
+    }
+}
+
+// Callback function to process events
+fn callback(event: Event) {
+    let current_time = Utc::now().timestamp_millis() as u64;
+    let mouse_event = match event.event_type {
+        EventType::MouseMove { x, y } => Some(MouseEvent {
+            event_type: "move".to_string(),
+            x: Some(x as i32), // Wrap in Some
+            y: Some(y as i32), // Wrap in Some
+            button: None,
+            pressed: None,
+            scroll_x: None,
+            scroll_y: None,
+            timestamp: current_time,
+        }),
+        EventType::ButtonPress(button) => Some(MouseEvent {
+            event_type: "button".to_string(),
+            // Coordinates are not directly available for button events in rdev
+            x: None, // Set to None
+            y: None, // Set to None
+            button: Some(button_to_string(button)),
+            pressed: Some(true),
+            scroll_x: None,
+            scroll_y: None,
+            timestamp: current_time,
+        }),
+        EventType::ButtonRelease(button) => Some(MouseEvent {
+            event_type: "button".to_string(),
+            // Coordinates are not directly available for button events in rdev
+            x: None, // Set to None
+            y: None, // Set to None
+            button: Some(button_to_string(button)),
+            pressed: Some(false),
+            scroll_x: None,
+            scroll_y: None,
+            timestamp: current_time,
+        }),
+        EventType::Wheel { delta_x, delta_y } => Some(MouseEvent {
+            event_type: "scroll".to_string(),
+            // Coordinates are not directly available for wheel events in rdev
+            x: None, // Set to None
+            y: None, // Set to None
+            button: None,
+            pressed: None,
+            scroll_x: Some(delta_x as i32), // Cast i64 to i32
+            scroll_y: Some(delta_y as i32), // Cast i64 to i32
+            timestamp: current_time,
+        }),
+        // Ignore keyboard events in this handler
+        EventType::KeyPress(_) | EventType::KeyRelease(_) => None,
+    };
+
+    if let Some(me) = mouse_event {
+        if let Ok(json) = serde_json::to_string(&me) {
+            println!("{}", json);
+        }
+    }
+}
 
 pub fn mouse_handling() {
-    let device_state = DeviceState::new();
-    let mut previous_position = (0, 0);
-    let mut previous_buttons = Vec::new();
-    
-    loop {
-        let mouse = device_state.get_mouse();
-        let buttons = mouse.button_pressed;
-        let position = mouse.coords;
-        let current_time = chrono::Utc::now().timestamp_millis() as u64;
-        
-        if position != previous_position {
-            let event = MouseEvent {
-                event_type: "move".to_string(),
-                x: position.0,
-                y: position.1,
-                button: None,
-                pressed: None,
-                timestamp: current_time,
-            };
-            
-            println!("{}", serde_json::to_string(&event).unwrap());
-            previous_position = position;
-        }
-        
-        if buttons.len() != previous_buttons.len() || buttons.iter().zip(previous_buttons.iter()).any(|(a, b)| a != b) {
-            for (index, &pressed) in buttons.iter().enumerate() {
-                let previous_pressed = previous_buttons.get(index).unwrap_or(&false);
-                
-                if pressed && !previous_pressed {
-                    let button_name = match index {
-                        0 => "left".to_string(),
-                        1 => "right".to_string(),
-                        2 => "middle".to_string(),
-                        _ => format!("button_{}", index),
-                    };
-                    
-                    let event = MouseEvent {
-                        event_type: "button".to_string(),
-                        x: position.0,
-                        y: position.1,
-                        button: Some(button_name),
-                        pressed: Some(true),
-                        timestamp: current_time,
-                    };
-                    println!("{}", serde_json::to_string(&event).unwrap());
-                } else if !pressed && *previous_pressed {
-                    let button_name = match index {
-                        0 => "left".to_string(),
-                        1 => "right".to_string(),
-                        2 => "middle".to_string(),
-                        _ => format!("button_{}", index),
-                    };
-                    
-                    let event = MouseEvent {
-                        event_type: "button".to_string(),
-                        x: position.0,
-                        y: position.1,
-                        button: Some(button_name),
-                        pressed: Some(false),
-                        timestamp: current_time,
-                    };
-                    println!("{}", serde_json::to_string(&event).unwrap());
-                }
-            }
-            
-            previous_buttons = buttons.clone();
-        }
-        
-        thread::sleep(Duration::from_millis(10));
+    println!("Starting mouse listener (using rdev)...");
+    // This will block the thread and listen for events.
+    if let Err(error) = listen(callback) {
+        eprintln!("Error listening for mouse events: {:?}", error);
     }
 }

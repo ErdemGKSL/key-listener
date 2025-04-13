@@ -64,11 +64,17 @@ pub enum SimulationEvent {
 #[derive(Serialize)]
 pub struct MouseEvent {
     pub event_type: String, // "move", "click", "scroll", etc.
-    pub x: i32,
-    pub y: i32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub x: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub y: Option<i32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub button: Option<String>, // "left", "right", "middle" for click events
     #[serde(skip_serializing_if = "Option::is_none")]
     pub pressed: Option<bool>, // true for press, false for release
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub scroll_x: Option<i32>, // Horizontal scroll delta
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub scroll_y: Option<i32>, // Vertical scroll delta
     pub timestamp: u64,
 }
