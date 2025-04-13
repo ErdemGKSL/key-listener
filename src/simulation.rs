@@ -1,7 +1,7 @@
 use std::{io::{self, BufRead}, thread, time::{Duration, Instant}};
 use enigo::{Enigo, Key, Keyboard, Mouse, Settings};
 
-use crate::models::{KeySimulationEvent, MouseSimulationEvent, SimulationEvent};
+use crate::models::{KeySimulationEvent, MouseSimulationEvent, SimulationEvent, TextSimulationEvent};
 
 pub fn string_to_key(key_str: &str) -> Option<Key> {
     match key_str {
@@ -126,11 +126,14 @@ pub fn key_simulation_handling() {
                         },
                         SimulationEvent::Mouse(mouse_event) => {
                             handle_mouse_event(&mut enigo, mouse_event);
+                        },
+                        SimulationEvent::Text(text_event) => {
+                            handle_text_event(&mut enigo, text_event);
                         }
                     }
                 },
                 Err(e) => {
-                    eprintln!("Error parsing JSON: {}. Expected format for key: {{\"event_type\": \"key\", \"key\": \"a\", \"action\": \"tap\", \"delay_after_ms\": 100}} or mouse: {{\"event_type\": \"mouse\", \"action\": \"move\", \"x\": 100, \"y\": 200}}", e);
+                    eprintln!("Error parsing JSON: {}. Expected format for \nkey: {{\"event_type\": \"key\", \"key\": \"a\", \"action\": \"tap\", \"delay_after_ms\": 100}}, \nmouse: {{\"event_type\": \"mouse\", \"action\": \"move\", \"x\": 100, \"y\": 200}}, or \ntext: {{\"event_type\": \"text\", \"text\": \"hello\", \"delay_after_ms\": 50}}", e);
                 }
             }
         }
@@ -320,12 +323,90 @@ pub fn handle_mouse_event(enigo: &mut Enigo, event: MouseSimulationEvent) {
             let _ = enigo.button(button, enigo::Direction::Release);
         },
         "scroll" => {
-            if let Some(x) = event.scroll_x {
-                let _ = enigo.scroll(x, enigo::Axis::Horizontal);
-            }
+            let target_scroll_x = event.scroll_x.unwrap_or(0);
+            let target_scroll_y = event.scroll_y.unwrap_or(0);
 
-            if let Some(y) = event.scroll_y {
-                let _ = enigo.scroll(y, enigo::Axis::Vertical);
+            if let (Some(duration_ms), Some(ease_name)) = (event.duration_ms, &event.ease) {
+                if duration_ms > 0 && (target_scroll_x != 0 || target_scroll_y != 0) {
+                    // Animated scroll
+                    let start_time = Instant::now();
+                    let start_scroll_x = 0.0; // Scroll is relative, so start is always 0 for the animation delta
+                    let start_scroll_y = 0.0;
+                    let target_scroll_x_f64 = target_scroll_x as f64;
+                    let target_scroll_y_f64 = target_scroll_y as f64;
+                    let duration_f64 = duration_ms as f64;
+
+                    let ease_func: fn(f64, f64, f64, f64) -> f64 = match ease_name.as_str() {
+                        "linear" => linear_tween,
+                        "easeInQuad" => ease_in_quad,
+                        "easeOutQuad" => ease_out_quad,
+                        "easeInOutQuad" => ease_in_out_quad,
+                        "easeInCubic" => ease_in_cubic,
+                        "easeOutCubic" => ease_out_cubic,
+                        "easeInOutCubic" => ease_in_out_cubic,
+                        "easeInSine" => ease_in_sine,
+                        "easeOutSine" => ease_out_sine,
+                        "easeInOutSine" => ease_in_out_sine,
+                        _ => {
+                            eprintln!("Unknown ease function: '{}'. Defaulting to linear.", ease_name);
+                            linear_tween
+                        }
+                    };
+
+                    let mut last_scrolled_x = 0.0;
+                    let mut last_scrolled_y = 0.0;
+
+                    loop {
+                        let elapsed = start_time.elapsed().as_millis() as f64;
+                        if elapsed >= duration_f64 {
+                            break;
+                        }
+
+                        let current_total_scroll_x = ease_func(elapsed, start_scroll_x, target_scroll_x_f64, duration_f64);
+                        let current_total_scroll_y = ease_func(elapsed, start_scroll_y, target_scroll_y_f64, duration_f64);
+
+                        let scroll_delta_x = current_total_scroll_x - last_scrolled_x;
+                        let scroll_delta_y = current_total_scroll_y - last_scrolled_y;
+
+                        if scroll_delta_x.abs() >= 1.0 {
+                            let _ = enigo.scroll(scroll_delta_x as i32, enigo::Axis::Horizontal);
+                            last_scrolled_x += scroll_delta_x;
+                        }
+                        if scroll_delta_y.abs() >= 1.0 {
+                            let _ = enigo.scroll(scroll_delta_y as i32, enigo::Axis::Vertical);
+                            last_scrolled_y += scroll_delta_y;
+                        }
+
+                        // Small sleep to yield control and manage update rate
+                        thread::sleep(Duration::from_millis(5));
+                    }
+                    // Ensure final scroll amount is exact by scrolling the remaining difference
+                    let final_delta_x = target_scroll_x_f64 - last_scrolled_x;
+                    let final_delta_y = target_scroll_y_f64 - last_scrolled_y;
+                    if final_delta_x.abs() >= 1.0 {
+                         let _ = enigo.scroll(final_delta_x as i32, enigo::Axis::Horizontal);
+                    }
+                     if final_delta_y.abs() >= 1.0 {
+                         let _ = enigo.scroll(final_delta_y as i32, enigo::Axis::Vertical);
+                    }
+
+                } else {
+                    // Instant scroll if duration is 0 or no scroll needed
+                    if target_scroll_x != 0 {
+                        let _ = enigo.scroll(target_scroll_x, enigo::Axis::Horizontal);
+                    }
+                    if target_scroll_y != 0 {
+                        let _ = enigo.scroll(target_scroll_y, enigo::Axis::Vertical);
+                    }
+                }
+            } else {
+                 // Instant scroll if duration or ease is not specified
+                 if target_scroll_x != 0 {
+                    let _ = enigo.scroll(target_scroll_x, enigo::Axis::Horizontal);
+                 }
+                 if target_scroll_y != 0 {
+                    let _ = enigo.scroll(target_scroll_y, enigo::Axis::Vertical);
+                 }
             }
         },
         _ => {
@@ -333,6 +414,14 @@ pub fn handle_mouse_event(enigo: &mut Enigo, event: MouseSimulationEvent) {
                      event.action);
         }
     }
+
+    if let Some(delay) = event.delay_after_ms {
+        thread::sleep(Duration::from_millis(delay));
+    }
+}
+
+pub fn handle_text_event(enigo: &mut Enigo, event: TextSimulationEvent) {
+    let _ = enigo.text(&event.text);
 
     if let Some(delay) = event.delay_after_ms {
         thread::sleep(Duration::from_millis(delay));

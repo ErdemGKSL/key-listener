@@ -45,12 +45,20 @@ pub struct MouseSimulationEvent {
 }
 
 #[derive(Deserialize)]
+pub struct TextSimulationEvent {
+    pub text: String,
+    pub delay_after_ms: Option<u64>,
+}
+
+#[derive(Deserialize)]
 #[serde(tag = "event_type")]
 pub enum SimulationEvent {
     #[serde(rename = "key")]
     Key(KeySimulationEvent),
     #[serde(rename = "mouse")]
     Mouse(MouseSimulationEvent),
+    #[serde(rename = "text")]
+    Text(TextSimulationEvent),
 }
 
 #[derive(Serialize)]

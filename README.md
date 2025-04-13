@@ -9,7 +9,8 @@ A cross-platform key event listener and simulator for Windows and Linux.
 - **Hold and Release**: Tracks key press sequences with duration information
 - **Key Simulation**: Receives JSON commands via standard input and simulates key events
 - **Mouse Handling**: Tracks mouse movements and button events
-- **Mouse Simulation**: Simulates mouse movements (instant or animated), clicks, and scroll events
+- **Mouse Simulation**: Simulates mouse movements (instant or animated), clicks, and scroll events (instant or animated)
+- **Text Simulation**: Simulates typing a string of text.
 
 ## Requirements
 
@@ -76,7 +77,7 @@ Run the program with one of the following modes:
 
 ## Key Simulation Mode
 
-In simulation mode, the program accepts JSON objects through standard input, one per line, to simulate keyboard and mouse actions. Each JSON object must specify an `event_type` ("key" or "mouse") and an `action`.
+In simulation mode, the program accepts JSON objects through standard input, one per line, to simulate keyboard, mouse, and text actions. Each JSON object must specify an `event_type` ("key", "mouse", or "text") and an `action` (for key/mouse).
 
 ### Key Simulation (`event_type: "key"`)
 
@@ -141,7 +142,7 @@ Used to simulate mouse movements, button clicks/presses/releases, and scrolling.
         *   `y`: Target Y coordinate (absolute pixel value).
     *   **Optional Fields for Animation:**
         *   `duration_ms`: Duration in milliseconds for the movement animation. If 0 or omitted, the move is instantaneous.
-        *   `ease`: The name of the easing function for the animation (e.g., `"easeInOutQuad"`). Requires `duration_ms` > 0. See [Supported Easing Functions](#supported-easing-functions-for-mouse-movement). Defaults to `"linear"` if `duration_ms` is provided but `ease` is omitted.
+        *   `ease`: The name of the easing function for the animation (e.g., `"easeInOutQuad"`). Requires `duration_ms` > 0. See [Supported Easing Functions](#supported-easing-functions-for-mouse-actions). Defaults to `"linear"` if `duration_ms` is provided but `ease` is omitted.
     *   **Examples:**
         *   **Instant Move:** Move cursor to (100, 200).
           ```json
@@ -198,27 +199,52 @@ Used to simulate mouse movements, button clicks/presses/releases, and scrolling.
           ```
 
 5.  **`action: "scroll"`**
-    *   Simulates scrolling the mouse wheel.
-    *   **Optional Fields:** (At least one must be provided)
-        *   `scroll_x`: The amount to scroll horizontally. Positive values scroll right, negative values scroll left.
-        *   `scroll_y`: The amount to scroll vertically. Positive values scroll up, negative values scroll down. (Note: This might feel inverted depending on OS settings).
-    *   **Example:**
-        *   **Scroll Down 10 units:**
+    *   Simulates scrolling the mouse wheel. Can be instant or animated.
+    *   **Optional Fields:** (At least one of `scroll_x` or `scroll_y` must be provided)
+        *   `scroll_x`: The total amount to scroll horizontally. Positive values scroll right, negative values scroll left.
+        *   `scroll_y`: The total amount to scroll vertically. Positive values scroll up, negative values scroll down. (Note: Vertical scroll direction might feel inverted depending on OS settings).
+    *   **Optional Fields for Animation:**
+        *   `duration_ms`: Duration in milliseconds for the scroll animation. If 0 or omitted, the scroll is instantaneous.
+        *   `ease`: The name of the easing function for the animation (e.g., `"easeOutSine"`). Requires `duration_ms` > 0. See [Supported Easing Functions](#supported-easing-functions-for-mouse-actions). Defaults to `"linear"` if `duration_ms` is provided but `ease` is omitted.
+    *   **Examples:**
+        *   **Instant Scroll Down 10 units:**
           ```json
           {"event_type":"mouse","action":"scroll","scroll_y":-10}
           ```
           ```bash
           echo '{"event_type":"mouse","action":"scroll","scroll_y":-10}' | ./key-listener SIMULATION
           ```
-        *   **Scroll Right 5 units:**
+        *   **Animated Scroll Right 50 units over 500ms:**
           ```json
-          {"event_type":"mouse","action":"scroll","scroll_x":5}
+          {"event_type":"mouse","action":"scroll","scroll_x":50,"duration_ms":500,"ease":"easeOutSine"}
           ```
           ```bash
-          echo '{"event_type":"mouse","action":"scroll","scroll_x":5}' | ./key-listener SIMULATION
+          echo '{"event_type":"mouse","action":"scroll","scroll_x":50,"duration_ms":500,"ease":"easeOutSine"}' | ./key-listener SIMULATION
           ```
 
-### Supported Easing Functions for Mouse Movement
+### Text Simulation (`event_type: "text"`)
+
+Used to simulate typing a string of text directly. This is often simpler than sending individual key tap events for each character.
+
+**JSON Fields:**
+
+*   `event_type`: (Required) Must be `"text"`.
+*   `text`: (Required) The string of text to type.
+*   `delay_after_ms`: (Optional) An integer specifying the number of milliseconds to pause *after* typing the text. Defaults to 0 if omitted.
+
+**Example:**
+
+*   **Type "Hello, World!" and wait 200ms:**
+    ```json
+    {"event_type":"text","text":"Hello, World!","delay_after_ms":200}
+    ```
+    ```bash
+    echo '{"event_type":"text","text":"Hello, World!","delay_after_ms":200}' | ./key-listener SIMULATION
+    ```
+
+### Supported Easing Functions for Mouse Actions
+
+These easing functions can be used with `action: "move"` and `action: "scroll"` when `duration_ms` is provided.
 
 - `linear`
 - `easeInQuad`
@@ -255,6 +281,11 @@ echo '{"event_type":"key","key":"a","action":"tap"}' | ./key-listener SIMULATION
 echo '{"event_type":"key","key":"Shift","action":"release"}' | ./key-listener SIMULATION
 ```
 
+Type the text "Example":
+```bash
+echo '{"event_type":"text","text":"Example"}' | ./key-listener SIMULATION
+```
+
 Move mouse instantly to position (100, 200):
 ```bash
 echo '{"event_type":"mouse","action":"move","x":100,"y":200}' | ./key-listener SIMULATION
@@ -270,9 +301,14 @@ Click the left mouse button:
 echo '{"event_type":"mouse","action":"click","button":"left"}' | ./key-listener SIMULATION
 ```
 
-Scroll down 10 units:
+Scroll down 10 units instantly:
 ```bash
 echo '{"event_type":"mouse","action":"scroll","scroll_y":-10}' | ./key-listener SIMULATION
+```
+
+Scroll up 20 units smoothly over 300ms:
+```bash
+echo '{"event_type":"mouse","action":"scroll","scroll_y":20,"duration_ms":300,"ease":"linear"}' | ./key-listener SIMULATION
 ```
 
 Drag the mouse from (100, 100) to (300, 300):
