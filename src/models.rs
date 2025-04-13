@@ -40,6 +40,8 @@ pub struct MouseSimulationEvent {
     pub scroll_x: Option<i32>, // Horizontal scroll amount
     pub scroll_y: Option<i32>, // Vertical scroll amount
     pub delay_after_ms: Option<u64>,
+    pub duration_ms: Option<u64>, // Duration for animated movement
+    pub ease: Option<String>, // Easing function name ("linear", "easeInQuad", etc.)
 }
 
 #[derive(Deserialize)]

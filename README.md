@@ -9,7 +9,7 @@ A cross-platform key event listener and simulator for Windows and Linux.
 - **Hold and Release**: Tracks key press sequences with duration information
 - **Key Simulation**: Receives JSON commands via standard input and simulates key events
 - **Mouse Handling**: Tracks mouse movements and button events
-- **Mouse Simulation**: Simulates mouse movements, clicks, and scroll events
+- **Mouse Simulation**: Simulates mouse movements (instant or animated), clicks, and scroll events
 
 ## Requirements
 
@@ -76,45 +76,160 @@ Run the program with one of the following modes:
 
 ## Key Simulation Mode
 
-In simulation mode, the program accepts JSON input through standard input.
+In simulation mode, the program accepts JSON objects through standard input, one per line, to simulate keyboard and mouse actions. Each JSON object must specify an `event_type` ("key" or "mouse") and an `action`.
 
-### Key Event JSON Format
+### Key Simulation (`event_type: "key"`)
 
-```json
-{
-  "event_type": "key",
-  "key": "a",
-  "action": "tap",
-  "delay_after_ms": 100
-}
-```
+Used to simulate keyboard key presses, releases, or taps.
 
-- `event_type`: Must be "key"
-- `key`: The key to simulate (see supported keys below)
-- `action`: One of "press", "release", or "tap"
-- `delay_after_ms`: (Optional) Milliseconds to wait after the key action
+**JSON Fields:**
 
-### Mouse Event JSON Format
+*   `event_type`: (Required) Must be `"key"`.
+*   `key`: (Required) A string representing the key to simulate. See [Supported Keys](#supported-keys).
+*   `action`: (Required) The action to perform on the key. Must be one of:
+    *   `"press"`: Simulates pressing and holding down the specified key. The key remains pressed until a corresponding `"release"` action is sent.
+    *   `"release"`: Simulates releasing a previously pressed key.
+    *   `"tap"`: Simulates a quick press and release of the key (a click).
+*   `delay_after_ms`: (Optional) An integer specifying the number of milliseconds to pause *after* executing the key action. Defaults to 0 if omitted.
 
-```json
-{
-  "event_type": "mouse",
-  "action": "move",
-  "x": 100,
-  "y": 200,
-  "button": "left",
-  "scroll_x": 0,
-  "scroll_y": -10,
-  "delay_after_ms": 100
-}
-```
+**Examples:**
 
-- `event_type`: Must be "mouse"
-- `action`: One of "move", "click", "press", "release", or "scroll"
-- `x`, `y`: (Optional) X and Y coordinates for move actions
-- `button`: (Optional) One of "left", "right", "middle" for click/press/release actions
-- `scroll_x`, `scroll_y`: (Optional) Horizontal and vertical scroll amounts
-- `delay_after_ms`: (Optional) Milliseconds to wait after the mouse action
+*   **Tap the 'a' key and wait 100ms:**
+    ```json
+    {"event_type":"key","key":"a","action":"tap","delay_after_ms":100}
+    ```
+    ```bash
+    echo '{"event_type":"key","key":"a","action":"tap","delay_after_ms":100}' | ./key-listener SIMULATION
+    ```
+*   **Type 'Hello': Press Shift, tap 'h', release Shift, tap 'e', 'l', 'l', 'o':**
+    ```json
+    {"event_type":"key","key":"Shift","action":"press"}
+    {"event_type":"key","key":"h","action":"tap"}
+    {"event_type":"key","key":"Shift","action":"release"}
+    {"event_type":"key","key":"e","action":"tap"}
+    {"event_type":"key","key":"l","action":"tap"}
+    {"event_type":"key","key":"l","action":"tap"}
+    {"event_type":"key","key":"o","action":"tap"}
+    ```
+    ```bash
+    # Send each line separately or pipe a file with one JSON per line
+    echo '{"event_type":"key","key":"Shift","action":"press"}' | ./key-listener SIMULATION
+    echo '{"event_type":"key","key":"h","action":"tap"}' | ./key-listener SIMULATION
+    echo '{"event_type":"key","key":"Shift","action":"release"}' | ./key-listener SIMULATION
+    echo '{"event_type":"key","key":"e","action":"tap"}' | ./key-listener SIMULATION
+    echo '{"event_type":"key","key":"l","action":"tap"}' | ./key-listener SIMULATION
+    echo '{"event_type":"key","key":"l","action":"tap"}' | ./key-listener SIMULATION
+    echo '{"event_type":"key","key":"o","action":"tap"}' | ./key-listener SIMULATION
+    ```
+
+### Mouse Simulation (`event_type: "mouse"`)
+
+Used to simulate mouse movements, button clicks/presses/releases, and scrolling.
+
+**Common JSON Fields:**
+
+*   `event_type`: (Required) Must be `"mouse"`.
+*   `action`: (Required) The mouse action to perform. See specific actions below.
+*   `delay_after_ms`: (Optional) An integer specifying the number of milliseconds to pause *after* executing the mouse action. Defaults to 0 if omitted.
+
+**Actions:**
+
+1.  **`action: "move"`**
+    *   Simulates moving the mouse cursor to a specific screen coordinate.
+    *   **Required Fields:**
+        *   `x`: Target X coordinate (absolute pixel value).
+        *   `y`: Target Y coordinate (absolute pixel value).
+    *   **Optional Fields for Animation:**
+        *   `duration_ms`: Duration in milliseconds for the movement animation. If 0 or omitted, the move is instantaneous.
+        *   `ease`: The name of the easing function for the animation (e.g., `"easeInOutQuad"`). Requires `duration_ms` > 0. See [Supported Easing Functions](#supported-easing-functions-for-mouse-movement). Defaults to `"linear"` if `duration_ms` is provided but `ease` is omitted.
+    *   **Examples:**
+        *   **Instant Move:** Move cursor to (100, 200).
+          ```json
+          {"event_type":"mouse","action":"move","x":100,"y":200}
+          ```
+          ```bash
+          echo '{"event_type":"mouse","action":"move","x":100,"y":200}' | ./key-listener SIMULATION
+          ```
+        *   **Animated Move:** Move cursor smoothly to (500, 500) over 1 second using `easeInOutQuad` easing.
+          ```json
+          {"event_type":"mouse","action":"move","x":500,"y":500,"duration_ms":1000,"ease":"easeInOutQuad"}
+          ```
+          ```bash
+          echo '{"event_type":"mouse","action":"move","x":500,"y":500,"duration_ms":1000,"ease":"easeInOutQuad"}' | ./key-listener SIMULATION
+          ```
+
+2.  **`action: "click"`**
+    *   Simulates a full click (press and release) of a mouse button.
+    *   **Optional Fields:**
+        *   `button`: The button to click. Can be `"left"`, `"right"`, or `"middle"`. Defaults to `"left"` if omitted.
+    *   **Example:**
+        *   **Right Click:**
+          ```json
+          {"event_type":"mouse","action":"click","button":"right"}
+          ```
+          ```bash
+          echo '{"event_type":"mouse","action":"click","button":"right"}' | ./key-listener SIMULATION
+          ```
+
+3.  **`action: "press"`**
+    *   Simulates pressing and holding down a mouse button. The button remains pressed until a corresponding `"release"` action is sent.
+    *   **Optional Fields:**
+        *   `button`: The button to press. Can be `"left"`, `"right"`, or `"middle"`. Defaults to `"left"` if omitted.
+    *   **Example:**
+        *   **Press Left Button:**
+          ```json
+          {"event_type":"mouse","action":"press","button":"left"}
+          ```
+          ```bash
+          echo '{"event_type":"mouse","action":"press","button":"left"}' | ./key-listener SIMULATION
+          ```
+
+4.  **`action: "release"`**
+    *   Simulates releasing a previously pressed mouse button.
+    *   **Optional Fields:**
+        *   `button`: The button to release. Can be `"left"`, `"right"`, or `"middle"`. Defaults to `"left"` if omitted.
+    *   **Example:**
+        *   **Release Left Button:**
+          ```json
+          {"event_type":"mouse","action":"release","button":"left"}
+          ```
+          ```bash
+          echo '{"event_type":"mouse","action":"release","button":"left"}' | ./key-listener SIMULATION
+          ```
+
+5.  **`action: "scroll"`**
+    *   Simulates scrolling the mouse wheel.
+    *   **Optional Fields:** (At least one must be provided)
+        *   `scroll_x`: The amount to scroll horizontally. Positive values scroll right, negative values scroll left.
+        *   `scroll_y`: The amount to scroll vertically. Positive values scroll up, negative values scroll down. (Note: This might feel inverted depending on OS settings).
+    *   **Example:**
+        *   **Scroll Down 10 units:**
+          ```json
+          {"event_type":"mouse","action":"scroll","scroll_y":-10}
+          ```
+          ```bash
+          echo '{"event_type":"mouse","action":"scroll","scroll_y":-10}' | ./key-listener SIMULATION
+          ```
+        *   **Scroll Right 5 units:**
+          ```json
+          {"event_type":"mouse","action":"scroll","scroll_x":5}
+          ```
+          ```bash
+          echo '{"event_type":"mouse","action":"scroll","scroll_x":5}' | ./key-listener SIMULATION
+          ```
+
+### Supported Easing Functions for Mouse Movement
+
+- `linear`
+- `easeInQuad`
+- `easeOutQuad`
+- `easeInOutQuad`
+- `easeInCubic`
+- `easeOutCubic`
+- `easeInOutCubic`
+- `easeInSine`
+- `easeOutSine`
+- `easeInOutSine`
 
 ### Supported Keys
 
@@ -126,7 +241,7 @@ In simulation mode, the program accepts JSON input through standard input.
 - Media keys: "VolumeUp", "VolumeDown", "VolumeMute", "MediaPlayPause", "MediaNextTrack", "MediaPrevTrack"
 - On Windows: Numpad keys like "Numpad0", "Numpad1", etc. and "Num0", "Num1", etc.
 
-### Examples
+### Examples (Consolidated)
 
 Tap the 'a' key:
 ```bash
@@ -140,9 +255,14 @@ echo '{"event_type":"key","key":"a","action":"tap"}' | ./key-listener SIMULATION
 echo '{"event_type":"key","key":"Shift","action":"release"}' | ./key-listener SIMULATION
 ```
 
-Move mouse to position (100, 200):
+Move mouse instantly to position (100, 200):
 ```bash
 echo '{"event_type":"mouse","action":"move","x":100,"y":200}' | ./key-listener SIMULATION
+```
+
+Move mouse smoothly to (500, 500) over 1 second using easeInOutQuad easing:
+```bash
+echo '{"event_type":"mouse","action":"move","x":500,"y":500,"duration_ms":1000,"ease":"easeInOutQuad"}' | ./key-listener SIMULATION
 ```
 
 Click the left mouse button:
@@ -153,6 +273,14 @@ echo '{"event_type":"mouse","action":"click","button":"left"}' | ./key-listener 
 Scroll down 10 units:
 ```bash
 echo '{"event_type":"mouse","action":"scroll","scroll_y":-10}' | ./key-listener SIMULATION
+```
+
+Drag the mouse from (100, 100) to (300, 300):
+```bash
+echo '{"event_type":"mouse","action":"move","x":100,"y":100}' | ./key-listener SIMULATION # Move to start
+echo '{"event_type":"mouse","action":"press","button":"left","delay_after_ms":50}' | ./key-listener SIMULATION # Press left button
+echo '{"event_type":"mouse","action":"move","x":300,"y":300,"duration_ms":500,"ease":"linear"}' | ./key-listener SIMULATION # Move smoothly
+echo '{"event_type":"mouse","action":"release","button":"left"}' | ./key-listener SIMULATION # Release button
 ```
 
 ## Mouse Handling Mode

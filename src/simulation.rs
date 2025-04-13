@@ -1,4 +1,4 @@
-use std::{io::{self, BufRead}, thread, time::Duration};
+use std::{io::{self, BufRead}, thread, time::{Duration, Instant}};
 use enigo::{Enigo, Key, Keyboard, Mouse, Settings};
 
 use crate::models::{KeySimulationEvent, MouseSimulationEvent, SimulationEvent};
@@ -164,11 +164,121 @@ pub fn handle_key_event(enigo: &mut Enigo, event: KeySimulationEvent) {
     }
 }
 
+// --- Easing Functions ---
+// t: current time, b: beginning value, c: change in value, d: duration
+fn linear_tween(t: f64, b: f64, c: f64, d: f64) -> f64 {
+    c * t / d + b
+}
+
+fn ease_in_quad(t: f64, b: f64, c: f64, d: f64) -> f64 {
+    let t = t / d;
+    c * t * t + b
+}
+
+fn ease_out_quad(t: f64, b: f64, c: f64, d: f64) -> f64 {
+    let t = t / d;
+    -c * t * (t - 2.0) + b
+}
+
+fn ease_in_out_quad(t: f64, b: f64, c: f64, d: f64) -> f64 {
+    let mut t = t / (d / 2.0);
+    if t < 1.0 {
+        return c / 2.0 * t * t + b;
+    }
+    t -= 1.0;
+    -c / 2.0 * (t * (t - 2.0) - 1.0) + b
+}
+
+fn ease_in_cubic(t: f64, b: f64, c: f64, d: f64) -> f64 {
+    let t = t / d;
+    c * t * t * t + b
+}
+
+fn ease_out_cubic(t: f64, b: f64, c: f64, d: f64) -> f64 {
+    let t = t / d - 1.0;
+    c * (t * t * t + 1.0) + b
+}
+
+fn ease_in_out_cubic(t: f64, b: f64, c: f64, d: f64) -> f64 {
+    let mut t = t / (d / 2.0);
+    if t < 1.0 {
+        return c / 2.0 * t * t * t + b;
+    }
+    t -= 2.0;
+    c / 2.0 * (t * t * t + 2.0) + b
+}
+
+fn ease_in_sine(t: f64, b: f64, c: f64, d: f64) -> f64 {
+    -c * (t / d * std::f64::consts::PI / 2.0).cos() + c + b
+}
+
+fn ease_out_sine(t: f64, b: f64, c: f64, d: f64) -> f64 {
+    c * (t / d * std::f64::consts::PI / 2.0).sin() + b
+}
+
+fn ease_in_out_sine(t: f64, b: f64, c: f64, d: f64) -> f64 {
+    -c / 2.0 * ((std::f64::consts::PI * t / d).cos() - 1.0) + b
+}
+// --- End Easing Functions ---
+
 pub fn handle_mouse_event(enigo: &mut Enigo, event: MouseSimulationEvent) {
     match event.action.as_str() {
         "move" => {
-            if let (Some(x), Some(y)) = (event.x, event.y) {
-                let _ = enigo.move_mouse(x, y, enigo::Coordinate::Abs);
+            if let (Some(target_x), Some(target_y)) = (event.x, event.y) {
+                if let (Some(duration_ms), Some(ease_name)) = (event.duration_ms, &event.ease) {
+                    if duration_ms > 0 {
+                        // Animated move
+                        let start_time = Instant::now();
+                        let start_pos = enigo.location().unwrap_or((0, 0));
+                        let start_x = start_pos.0 as f64;
+                        let start_y = start_pos.1 as f64;
+                        let target_x_f64 = target_x as f64;
+                        let target_y_f64 = target_y as f64;
+                        let change_x = target_x_f64 - start_x;
+                        let change_y = target_y_f64 - start_y;
+                        let duration_f64 = duration_ms as f64;
+
+                        let ease_func: fn(f64, f64, f64, f64) -> f64 = match ease_name.as_str() {
+                            "linear" => linear_tween,
+                            "easeInQuad" => ease_in_quad,
+                            "easeOutQuad" => ease_out_quad,
+                            "easeInOutQuad" => ease_in_out_quad,
+                            "easeInCubic" => ease_in_cubic,
+                            "easeOutCubic" => ease_out_cubic,
+                            "easeInOutCubic" => ease_in_out_cubic,
+                            "easeInSine" => ease_in_sine,
+                            "easeOutSine" => ease_out_sine,
+                            "easeInOutSine" => ease_in_out_sine,
+                            _ => {
+                                eprintln!("Unknown ease function: '{}'. Defaulting to linear.", ease_name);
+                                linear_tween
+                            }
+                        };
+
+                        loop {
+                            let elapsed = start_time.elapsed().as_millis() as f64;
+                            if elapsed >= duration_f64 {
+                                break;
+                            }
+
+                            let current_x = ease_func(elapsed, start_x, change_x, duration_f64);
+                            let current_y = ease_func(elapsed, start_y, change_y, duration_f64);
+
+                            let _ = enigo.move_mouse(current_x as i32, current_y as i32, enigo::Coordinate::Abs);
+                            // Small sleep to yield control and manage update rate
+                            thread::sleep(Duration::from_millis(5));
+                        }
+                        // Ensure final position is exact
+                        let _ = enigo.move_mouse(target_x, target_y, enigo::Coordinate::Abs);
+
+                    } else {
+                        // Instant move if duration is 0
+                        let _ = enigo.move_mouse(target_x, target_y, enigo::Coordinate::Abs);
+                    }
+                } else {
+                    // Instant move if duration or ease is not specified
+                    let _ = enigo.move_mouse(target_x, target_y, enigo::Coordinate::Abs);
+                }
             } else {
                 eprintln!("Move action requires both x and y coordinates");
             }
@@ -179,7 +289,7 @@ pub fn handle_mouse_event(enigo: &mut Enigo, event: MouseSimulationEvent) {
                 Some("right") => enigo::Button::Right,
                 Some("middle") => enigo::Button::Middle,
                 _ => {
-                    eprintln!("Invalid button specified. Using left button as default.");
+                    eprintln!("Invalid button specified for click. Using left button as default.");
                     enigo::Button::Left
                 }
             };
@@ -191,7 +301,7 @@ pub fn handle_mouse_event(enigo: &mut Enigo, event: MouseSimulationEvent) {
                 Some("right") => enigo::Button::Right,
                 Some("middle") => enigo::Button::Middle,
                 _ => {
-                    eprintln!("Invalid button specified. Using left button as default.");
+                    eprintln!("Invalid button specified for press. Using left button as default.");
                     enigo::Button::Left
                 }
             };
@@ -203,7 +313,7 @@ pub fn handle_mouse_event(enigo: &mut Enigo, event: MouseSimulationEvent) {
                 Some("right") => enigo::Button::Right,
                 Some("middle") => enigo::Button::Middle,
                 _ => {
-                    eprintln!("Invalid button specified. Using left button as default.");
+                    eprintln!("Invalid button specified for release. Using left button as default.");
                     enigo::Button::Left
                 }
             };
@@ -213,17 +323,17 @@ pub fn handle_mouse_event(enigo: &mut Enigo, event: MouseSimulationEvent) {
             if let Some(x) = event.scroll_x {
                 let _ = enigo.scroll(x, enigo::Axis::Horizontal);
             }
-            
+
             if let Some(y) = event.scroll_y {
                 let _ = enigo.scroll(y, enigo::Axis::Vertical);
             }
         },
         _ => {
-            eprintln!("Unknown mouse action: {}. Valid actions are: move, click, press, release, scroll", 
+            eprintln!("Unknown mouse action: {}. Valid actions are: move, click, press, release, scroll",
                      event.action);
         }
     }
-    
+
     if let Some(delay) = event.delay_after_ms {
         thread::sleep(Duration::from_millis(delay));
     }
