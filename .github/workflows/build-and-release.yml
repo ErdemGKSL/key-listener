@@ -4,6 +4,12 @@ on:
   push:
     branches: [ main ]
 
+# Add explicit permissions for the workflow
+permissions:
+  contents: write
+  packages: read
+  actions: read
+
 env:
   CARGO_TERM_COLOR: always
 
@@ -140,6 +146,11 @@ jobs:
     needs: build
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
     
+    # Add explicit permissions for this job
+    permissions:
+      contents: write
+      packages: read
+    
     steps:
     - uses: actions/checkout@v4
     
@@ -169,7 +180,7 @@ jobs:
         echo "Generated tag: $TAG"
     
     - name: Create development release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
         tag_name: ${{ steps.tag.outputs.tag }}
         name: "Development Release ${{ steps.tag.outputs.tag }}"
@@ -228,7 +239,6 @@ jobs:
         files: release/*
         draft: false
         prerelease: true
-        token: ${{ secrets.GITHUB_TOKEN }}
 
   cleanup-old-dev-releases:
     name: Cleanup Old Dev Releases
@@ -236,9 +246,13 @@ jobs:
     needs: create-dev-release
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop'
     
+    # Add explicit permissions for this job
+    permissions:
+      contents: write
+    
     steps:
     - name: Delete old development releases
-      uses: actions/github-script@v6
+      uses: actions/github-script@v7
       with:
         script: |
           const { owner, repo } = context.repo;
@@ -248,14 +262,14 @@ jobs:
             release.tag_name.startsWith('dev-') && release.prerelease
           );
           
-          # Keep only the latest 5 dev releases
+          // Keep only the latest 5 dev releases
           const toDelete = devReleases.slice(5);
           
           for (const release of toDelete) {
             console.log(`Deleting old dev release: ${release.tag_name}`);
             await github.rest.repos.deleteRelease({ owner, repo, release_id: release.id });
             
-            # Also delete the tag
+            // Also delete the tag
             try {
               await github.rest.git.deleteRef({ owner, repo, ref: `tags/${release.tag_name}` });
             } catch (error) {
