@@ -70,10 +70,8 @@ jobs:
           - os: macos-latest
             target: x86_64-apple-darwin
             suffix: ""
-          - os: ubuntu-latest
-            target: aarch64-unknown-linux-gnu
-            suffix: ""
-            cross: true
+          # Note: ARM64 cross-compilation removed due to X11 dependency issues
+          # Consider using native ARM64 runners or Docker-based solutions in the future
 
     steps:
     - uses: actions/checkout@v4
@@ -88,10 +86,6 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y libxdo-dev libx11-dev libxi-dev libxtst-dev
-    
-    - name: Install cross
-      if: matrix.cross
-      run: cargo install cross
     
     - name: Cache cargo registry
       uses: actions/cache@v4
@@ -113,21 +107,12 @@ jobs:
     
     - name: Build all binaries
       run: |
-        if [ "${{ matrix.cross }}" = "true" ]; then
-          cross build --release --target ${{ matrix.target }}
-          cross build --release --target ${{ matrix.target }} --bin key-listener-direct --features direct --no-default-features
-          cross build --release --target ${{ matrix.target }} --bin key-listener-complex --features complex --no-default-features
-          cross build --release --target ${{ matrix.target }} --bin key-listener-hold-release --features hold_and_release --no-default-features
-          cross build --release --target ${{ matrix.target }} --bin key-listener-simulation --features simulation --no-default-features
-          cross build --release --target ${{ matrix.target }} --bin key-listener-mouse --features mouse --no-default-features
-        else
-          cargo build --release --target ${{ matrix.target }}
-          cargo build --release --target ${{ matrix.target }} --bin key-listener-direct --features direct --no-default-features
-          cargo build --release --target ${{ matrix.target }} --bin key-listener-complex --features complex --no-default-features
-          cargo build --release --target ${{ matrix.target }} --bin key-listener-hold-release --features hold_and_release --no-default-features
-          cargo build --release --target ${{ matrix.target }} --bin key-listener-simulation --features simulation --no-default-features
-          cargo build --release --target ${{ matrix.target }} --bin key-listener-mouse --features mouse --no-default-features
-        fi
+        cargo build --release --target ${{ matrix.target }}
+        cargo build --release --target ${{ matrix.target }} --bin key-listener-direct --features direct --no-default-features
+        cargo build --release --target ${{ matrix.target }} --bin key-listener-complex --features complex --no-default-features
+        cargo build --release --target ${{ matrix.target }} --bin key-listener-hold-release --features hold_and_release --no-default-features
+        cargo build --release --target ${{ matrix.target }} --bin key-listener-simulation --features simulation --no-default-features
+        cargo build --release --target ${{ matrix.target }} --bin key-listener-mouse --features mouse --no-default-features
       shell: bash
     
     - name: Create release directory
@@ -203,7 +188,6 @@ jobs:
           - `key-listener-x86_64-unknown-linux-gnu` - Linux x64
           - `key-listener-x86_64-pc-windows-msvc.exe` - Windows x64
           - `key-listener-x86_64-apple-darwin` - macOS x64
-          - `key-listener-aarch64-unknown-linux-gnu` - Linux ARM64
           
           ### Feature-Specific Binaries (Smaller, optimized)
           
@@ -211,31 +195,26 @@ jobs:
           - `key-listener-direct-x86_64-unknown-linux-gnu`
           - `key-listener-direct-x86_64-pc-windows-msvc.exe`
           - `key-listener-direct-x86_64-apple-darwin`
-          - `key-listener-direct-aarch64-unknown-linux-gnu`
           
           #### Complex Mode (Key combinations)
           - `key-listener-complex-x86_64-unknown-linux-gnu`
           - `key-listener-complex-x86_64-pc-windows-msvc.exe`
           - `key-listener-complex-x86_64-apple-darwin`
-          - `key-listener-complex-aarch64-unknown-linux-gnu`
           
           #### Hold & Release Mode (Timing sequences)
           - `key-listener-hold-release-x86_64-unknown-linux-gnu`
           - `key-listener-hold-release-x86_64-pc-windows-msvc.exe`
           - `key-listener-hold-release-x86_64-apple-darwin`
-          - `key-listener-hold-release-aarch64-unknown-linux-gnu`
           
           #### Simulation Mode (Automation)
           - `key-listener-simulation-x86_64-unknown-linux-gnu`
           - `key-listener-simulation-x86_64-pc-windows-msvc.exe`
           - `key-listener-simulation-x86_64-apple-darwin`
-          - `key-listener-simulation-aarch64-unknown-linux-gnu`
           
           #### Mouse Mode (Mouse events)
           - `key-listener-mouse-x86_64-unknown-linux-gnu`
           - `key-listener-mouse-x86_64-pc-windows-msvc.exe`
           - `key-listener-mouse-x86_64-apple-darwin`
-          - `key-listener-mouse-aarch64-unknown-linux-gnu`
           
           ## Usage
           
@@ -244,6 +223,8 @@ jobs:
           3. Run directly: `./key-listener-direct` or with arguments: `./key-listener direct`
           
           **Note:** This is a development release and may contain bugs. Use stable releases for production.
+          
+          **ARM64 Support:** ARM64 binaries are currently not available due to cross-compilation complexities with X11 dependencies. Native ARM64 support may be added in future releases.
         files: release/*
         draft: false
         prerelease: true
@@ -267,14 +248,14 @@ jobs:
             release.tag_name.startsWith('dev-') && release.prerelease
           );
           
-          // Keep only the latest 5 dev releases
+          # Keep only the latest 5 dev releases
           const toDelete = devReleases.slice(5);
           
           for (const release of toDelete) {
             console.log(`Deleting old dev release: ${release.tag_name}`);
             await github.rest.repos.deleteRelease({ owner, repo, release_id: release.id });
             
-            // Also delete the tag
+            # Also delete the tag
             try {
               await github.rest.git.deleteRef({ owner, repo, ref: `tags/${release.tag_name}` });
             } catch (error) {
