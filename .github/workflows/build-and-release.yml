@@ -267,7 +267,7 @@ jobs:
           );
           
           // Keep only the latest 5 dev releases
-          const toDelete = devReleases.slice(5);
+          const toDelete = devReleases.slice(1);
           console.log(`Found ${devReleases.length}/${releases.data.length} development releases, deleting ${toDelete.length} old releases.`);
           
           for (const release of toDelete) {
