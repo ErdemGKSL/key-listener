@@ -173,11 +173,15 @@ jobs:
       run: |
         if [ "${{ github.ref }}" = "refs/heads/main" ]; then
           TAG="dev-$(date +'%Y%m%d-%H%M%S')"
+          BUILD_DATE="$(date +'%B %d, %Y at %H:%M:%S UTC')"
         else
           TAG="dev-${GITHUB_REF_NAME}-$(date +'%Y%m%d-%H%M%S')"
+          BUILD_DATE="$(date +'%B %d, %Y at %H:%M:%S UTC')"
         fi
         echo "tag=$TAG" >> $GITHUB_OUTPUT
+        echo "build_date=$BUILD_DATE" >> $GITHUB_OUTPUT
         echo "Generated tag: $TAG"
+        echo "Build date: $BUILD_DATE"
     
     - name: Create development release
       uses: softprops/action-gh-release@v2
@@ -191,7 +195,7 @@ jobs:
           
           **Branch:** ${{ github.ref_name }}
           **Commit:** ${{ github.sha }}
-          **Build Date:** ${{ steps.tag.outputs.tag }}
+          **Build Date:** ${{ steps.tag.outputs.build_date }}
           
           ## Available Binaries
           
@@ -238,7 +242,7 @@ jobs:
           **ARM64 Support:** ARM64 binaries are currently not available due to cross-compilation complexities with X11 dependencies. Native ARM64 support may be added in future releases.
         files: release/*
         draft: false
-        prerelease: true
+        prerelease: false
 
   cleanup-old-dev-releases:
     name: Cleanup Old Dev Releases
@@ -259,7 +263,7 @@ jobs:
           const releases = await github.rest.repos.listReleases({ owner, repo });
           
           const devReleases = releases.data.filter(release => 
-            release.tag_name.startsWith('dev-') && release.prerelease
+            release.tag_name.startsWith('dev-') && !release.prerelease
           );
           
           // Keep only the latest 5 dev releases
