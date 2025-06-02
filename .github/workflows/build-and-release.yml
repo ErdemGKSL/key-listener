@@ -59,6 +59,7 @@ jobs:
         cargo check --no-default-features --features hold_and_release
         cargo check --no-default-features --features simulation
         cargo check --no-default-features --features mouse
+        cargo check --no-default-features --features no-simulation
 
   build:
     name: Build for ${{ matrix.os }}
@@ -122,6 +123,7 @@ jobs:
         cargo build --release --target ${{ matrix.target }} --bin key-listener-hold-release --features hold_and_release --no-default-features
         cargo build --release --target ${{ matrix.target }} --bin key-listener-simulation --features simulation --no-default-features
         cargo build --release --target ${{ matrix.target }} --bin key-listener-mouse --features mouse --no-default-features
+        cargo build --release --target ${{ matrix.target }} --bin key-listener-no-simulation --features no-simulation --no-default-features
       shell: bash
     
     - name: Create release directory
@@ -135,6 +137,7 @@ jobs:
         cp target/${{ matrix.target }}/release/key-listener-hold-release${{ matrix.suffix }} release/key-listener-hold-release-${{ matrix.target }}${{ matrix.suffix }}
         cp target/${{ matrix.target }}/release/key-listener-simulation${{ matrix.suffix }} release/key-listener-simulation-${{ matrix.target }}${{ matrix.suffix }}
         cp target/${{ matrix.target }}/release/key-listener-mouse${{ matrix.suffix }} release/key-listener-mouse-${{ matrix.target }}${{ matrix.suffix }}
+        cp target/${{ matrix.target }}/release/key-listener-no-simulation${{ matrix.suffix }} release/key-listener-no-simulation-${{ matrix.target }}${{ matrix.suffix }}
       shell: bash
     
     - name: Upload artifacts
@@ -233,6 +236,11 @@ jobs:
           - `key-listener-mouse-x86_64-unknown-linux-gnu`
           - `key-listener-mouse-x86_64-pc-windows-msvc.exe`
           - `key-listener-mouse-x86_64-apple-darwin`
+          
+          #### No-Simulation Mode (All features except automation)
+          - `key-listener-no-simulation-x86_64-unknown-linux-gnu`
+          - `key-listener-no-simulation-x86_64-pc-windows-msvc.exe`
+          - `key-listener-no-simulation-x86_64-apple-darwin`
           
           ## Usage
           
