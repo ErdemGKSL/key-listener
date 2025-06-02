@@ -263,7 +263,7 @@ jobs:
           const releases = await github.rest.repos.listReleases({ owner, repo });
           
           const devReleases = releases.data.filter(release => 
-            release.tag_name.startsWith('dev-') && !release.prerelease
+            release.tag_name.startsWith('dev-')
           );
           
           // Keep only the latest 5 dev releases
