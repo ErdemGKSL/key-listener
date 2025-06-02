@@ -31,13 +31,27 @@ pub fn string_to_key(key_str: &str) -> Option<Key> {
         "PageUp" => Some(Key::PageUp),
         "PageDown" => Some(Key::PageDown),
         "Delete" => Some(Key::Delete),
-        "Insert" => Some(Key::Insert),
         "Escape" => Some(Key::Escape),
         "Tab" => Some(Key::Tab),
         "Return" => Some(Key::Return),
         "Space" => Some(Key::Space),
         "Backspace" => Some(Key::Backspace),
+        
+        #[cfg(not(target_os = "macos"))]
+        "Insert" => Some(Key::Insert),
+        #[cfg(not(target_os = "macos"))]
         "PrintScr" => Some(Key::PrintScr),
+        
+        #[cfg(target_os = "macos")]
+        "Insert" => {
+            eprintln!("Warning: Insert key not supported on macOS");
+            None
+        },
+        #[cfg(target_os = "macos")]
+        "PrintScr" => {
+            eprintln!("Warning: PrintScr key not supported on macOS");
+            None
+        },
         
         "UpArrow" => Some(Key::UpArrow),
         "DownArrow" => Some(Key::DownArrow),
