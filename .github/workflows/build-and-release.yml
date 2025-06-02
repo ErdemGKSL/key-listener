@@ -266,8 +266,7 @@ jobs:
             release.tag_name.startsWith('dev-')
           );
           
-          // Keep only the latest 5 dev releases
-          const toDelete = devReleases.slice(1);
+          const toDelete = devReleases.slice(3);
           console.log(`Found ${devReleases.length}/${releases.data.length} development releases, deleting ${toDelete.length} old releases.`);
           
           for (const release of toDelete) {
