@@ -20,7 +20,7 @@ jobs:
     - name: Install Linux dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y libxdo-dev libx11-dev
+        sudo apt-get install -y libxdo-dev libx11-dev libxi-dev libxtst-dev
     
     - name: Cache cargo registry
       uses: actions/cache@v3
@@ -87,7 +87,7 @@ jobs:
       if: matrix.os == 'ubuntu-latest'
       run: |
         sudo apt-get update
-        sudo apt-get install -y libxdo-dev libx11-dev
+        sudo apt-get install -y libxdo-dev libx11-dev libxi-dev libxtst-dev
     
     - name: Install cross
       if: matrix.cross
