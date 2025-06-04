@@ -71,8 +71,6 @@ fn callback(event: Event) {
 }
 
 pub fn mouse_handling() {
-    println!("Starting mouse listener (using rdev)...");
-    // This will block the thread and listen for events.
     if let Err(error) = listen(callback) {
         eprintln!("Error listening for mouse events: {:?}", error);
     }
